@@ -15,3 +15,51 @@ optimizer = Adam(Student.parameters())
 #other HP
 batch_size = 64
 epochs = 16
+ramp_up = 10
+consistency = 56
+alpha = 0.999
+gs = 0
+
+#Weigth coef for the Unsupervised
+def wt(rampup_length, current, alpha):
+    if rampup_length == 0:
+                return 1.0
+    else:
+        current = np.clip(current, 0.0, rampup_length)
+        phase = 1.0 - current / rampup_length
+        return float(alpha * np.exp(-5.0 * phase * phase))
+#update the Teacher weigth
+def update_ema_variables(model, ema_model, alpha, global_step): 
+    # Use the true average until the exponential average is more correct
+    alpha = min(1 - 1 / (global_step + 1), alpha)
+    for ema_param, param in zip(ema_model.parameters(), model.parameters()):
+        ema_param.data.mul_(alpha).add_(1 - alpha, param.data)
+
+
+##data loader
+trainloader = Data_Loader(batch_size=batch_size, shuffle=True)
+for epoch in range(epochs):
+    cum_loss = 0
+    for idx, (X,y) in enumerate(trainloader):
+        optimizer.zero_grad()
+        pred_stud = Student(X)
+        pred_teach = Teacher(X)
+
+        # Find img with label
+        idx = [elem != None for elem in X[:, 0, 0, 0]] #If batchsize is the first dim
+
+        # Calculate supervised and unsupervised losses
+        Ls = sup_crit(pred_stud[idx], y[idx])
+        Lu = unsup_crit(pred_stud, pred_teach)
+        loss = Ls + Lu * wt(ramp_up, epoch, consistency)
+        loss.backward()
+        optimizer.step()
+        cum_loss += loss
+        gs += 1
+        update_ema_variables(Student, Teacher, alpha, gs)
+    print(f'Epoch {epoch} loss {cum_loss.item() / len(trainloader)}')
+        #get the images with mask
+        #for i in range(batch_size): #loop through the label in the batch
+         #   if y[0][0][0][i] != None: # check if the mask is a real one or a fake one
+                
+
