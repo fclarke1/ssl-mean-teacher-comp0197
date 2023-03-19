@@ -131,16 +131,16 @@ def get_data(nb_labeled_data, nb_unlabeled_data, percentage_validation, percenta
     
     transform_data = transforms.Compose(
         [transforms.ToTensor(),
-        #transforms.CenterCrop((256, 256))])
-        transforms.Resize((256,256))])
+        transforms.CenterCrop((256, 256))])
+        #transforms.Resize((256,256))])
         #transforms.Normalize((0, 0, 0), (1/255, 1/255, 1/255))])
     
     
     transform_mask = transforms.Compose(
         [transforms.ToTensor(),
-        #transforms.CenterCrop((256, 256))])
-        transforms.Resize((256,256))])
-        #transforms.Normalize(0, 1/255)])
+        transforms.CenterCrop((256, 256)),
+        #transforms.Resize((256,256))])
+        transforms.Normalize(0, 1/255)])
 
     ##train data
     index_end_train = int((1 - (percentage_validation + percentage_test)) * nb_data)
