@@ -194,8 +194,8 @@ def get_data(nb_labeled_data, nb_unlabeled_data, percentage_validation, percenta
 
     return labeled_train_loader, unlabeled_train_loader, val_loader, test_loader
 
-
-labeled_train_loader, unlabeled_train_loader, val_loader, test_loader = get_data(0.2, 0.8, 0.2, 0.2)
+if __name__ == '__main__':
+    labeled_train_loader, unlabeled_train_loader, val_loader, test_loader = get_data(0.2, 0.8, 0.2, 0.2)
 
 
 """
