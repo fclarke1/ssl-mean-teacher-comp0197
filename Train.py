@@ -2,13 +2,13 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.optim import Adam
-from unet import unet_model as Unet
-from AAAA import Data_Loader
+from unet import UNet
+from preprocessing_2_dataloaders import get_data
 
 ####Initialisation####
 #create 2 network
-Student = Unet()
-Teacher = Unet()
+Student = UNet(3,2)
+Teacher = UNet(3,2)
 #creat the losses
 sup_crit = nn.CrossEntropyLoss()
 unsup_crit = nn.CrossEntropyLoss()
@@ -38,8 +38,8 @@ def update_ema_variables(model, ema_model, alpha, global_step):
         ema_param.data.mul_(alpha).add_(1 - alpha, param.data)
 
 
-##data loader
-trainloader = Data_Loader(batch_size=batch_size, shuffle=True)
+##data loaders
+labeled_train_loader, unlabeled_train_loader, val_loader, test_loader = get_data(0.2, 0.8, 0.2, 0.2)
 for epoch in range(epochs):
     cum_loss = 0
     for idx, (X,y) in enumerate(trainloader):
