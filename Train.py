@@ -4,6 +4,7 @@ import torch.nn as nn
 from torch.optim import Adam
 from unet import UNet
 from preprocessing_1_dataloader import get_data
+from data_augmentation import augmentation
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") #Enable GPU support
 ####Initialisation####
 #create 2 network
@@ -45,8 +46,10 @@ for epoch in range(epochs):
     cum_loss = 0
     for idx, (X,y) in enumerate(mixed_train_loader):
         optimizer.zero_grad()
-        pred_stud = Student(X)
-        pred_teach = Teacher(X)
+        X_student_augmentation = augmentation(X)
+        X_teacher_augmentation = augmentation(X)
+        pred_stud = Student(X_student_augmentation)
+        pred_teach = Teacher(X_teacher_augmentation)
 
         # Find img with label
         idx = [elem != -1 for elem in y[:, 0, 0, 0]] #If batchsize is the first dim
