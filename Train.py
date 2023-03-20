@@ -4,14 +4,14 @@ import torch.nn as nn
 from torch.optim import Adam
 from unet import UNet
 from preprocessing_1_dataloader import get_data
-
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") #Enable GPU support
 ####Initialisation####
 #create 2 network
-Student = UNet(3,2)
-Teacher = UNet(3,2)
+Student = UNet(3,2).to(device)
+Teacher = UNet(3,2).to(device)
 #creat the losses
-sup_crit = nn.CrossEntropyLoss()
-unsup_crit = nn.CrossEntropyLoss()
+sup_crit = nn.CrossEntropyLoss().to(device)
+unsup_crit = nn.CrossEntropyLoss().to(device)
 #optimizer
 optimizer = Adam(Student.parameters())
 #other HP
@@ -38,9 +38,9 @@ def update_ema_variables(model, ema_model, alpha, global_step):
         ema_param.data.mul_(alpha).add_(1 - alpha, param.data)
 
 
-##data loaders
-
+##data loader
 mixed_train_loader, val_loader, test_loader = get_data(0.2,0.8,0.2,0.1)
+#Train
 for epoch in range(epochs):
     cum_loss = 0
     for idx, (X,y) in enumerate(mixed_train_loader):
@@ -60,7 +60,7 @@ for epoch in range(epochs):
         cum_loss += loss
         gs += 1
         update_ema_variables(Student, Teacher, alpha, gs)
-    print(f'Epoch {epoch} loss {cum_loss.item() / len(trainloader)}')
+    print(f'Epoch {epoch} loss {cum_loss.item() / len(mixed_train_loader)}')
         #get the images with mask
         #for i in range(batch_size): #loop through the label in the batch
          #   if y[0][0][0][i] != None: # check if the mask is a real one or a fake one
