@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from torch.optim import Adam
 from unet import UNet
-from preprocessing_2_dataloaders import get_data
+from preprocessing_1_dataloader import get_data
 
 ####Initialisation####
 #create 2 network
@@ -39,16 +39,17 @@ def update_ema_variables(model, ema_model, alpha, global_step):
 
 
 ##data loaders
-labeled_train_loader, unlabeled_train_loader, val_loader, test_loader = get_data(0.2, 0.8, 0.2, 0.2)
+
+mixed_train_loader, val_loader, test_loader = get_data(0.2,0.8,0.2,0.1)
 for epoch in range(epochs):
     cum_loss = 0
-    for idx, (X,y) in enumerate(trainloader):
+    for idx, (X,y) in enumerate(mixed_train_loader):
         optimizer.zero_grad()
         pred_stud = Student(X)
         pred_teach = Teacher(X)
 
         # Find img with label
-        idx = [elem != None for elem in X[:, 0, 0, 0]] #If batchsize is the first dim
+        idx = [elem != -1 for elem in y[:, 0, 0, 0]] #If batchsize is the first dim
 
         # Calculate supervised and unsupervised losses
         Ls = sup_crit(pred_stud[idx], y[idx])
