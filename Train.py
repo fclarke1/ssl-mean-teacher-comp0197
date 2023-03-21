@@ -4,7 +4,7 @@ import torch.nn as nn
 from torch.optim import Adam
 from unet import UNet
 from preprocessing_1_dataloader import get_data
-from data_augmentation import augmentation
+from data_augmentation import augmentation, colorjiter, invert
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") #Enable GPU support
 ####Initialisation####
 #create 2 network
