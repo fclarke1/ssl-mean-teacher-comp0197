@@ -27,18 +27,19 @@ def download_data():
 #Each pixel in a mask image can take one of three values: 1, 2, or 3. 1 means that this pixel of an image belongs to the class pet, 2 - to the class background, 3 - to the class border. 
 def preprocess_mask(mask):
     
-    mask[mask == 2.0] = 0.0
-    mask[(mask == 1.0) | (mask == 3.0)] = 1.0
+    mask[np.round(mask) == 2.0] = 0.0
+    mask[(np.round(mask) == 1.0) | (np.round(mask) == 3.0)] = 1.0
     return mask
 
-
 class OxfordPetDataset_with_labels(Dataset):
-    def __init__(self, images_filenames, images_directory, masks_directory, transform_data=None, transform_mask=None):
+    #def __init__(self, images_filenames, images_directory, masks_directory, transform_data=None, transform_mask=None):
+    def __init__(self, images_filenames, images_directory, masks_directory, transform_data_1=None, transform_mask_1=None, transform_2=None):
         self.images_filenames = images_filenames
         self.images_directory = images_directory
         self.masks_directory = masks_directory
-        self.transform_data = transform_data
-        self.transform_mask = transform_mask
+        self.transform_data_1 = transform_data_1
+        self.transform_mask_1 = transform_mask_1
+        self.transform_2 = transform_2
 
     def __len__(self):
         return len(self.images_filenames)
@@ -50,13 +51,22 @@ class OxfordPetDataset_with_labels(Dataset):
             os.path.join(self.masks_directory, image_filename.replace(".jpg", ".png")),
         )
         
-        if self.transform_data is not None:
-            image = self.transform_data(image)
+        if self.transform_data_1 is not None:
+            image = self.transform_data_1(image)
         
-        if self.transform_mask is not None:
-            mask = self.transform_mask(mask)
+        if self.transform_mask_1 is not None:
+            mask = self.transform_mask_1(mask)
         
         mask = preprocess_mask(mask)
+
+
+        if self.transform_2 is not None:
+            mask = self.transform_2(mask)
+            image = self.transform_2(image)
+
+        mask[mask <= 0.5] = 0
+        mask[mask>0.5] = 1 
+
         return image, mask
     
     
@@ -98,7 +108,7 @@ def are_images_all_RGB(images_filenames, images_directory):
 
 
 
-def get_data(nb_labeled_data, nb_unlabeled_data, percentage_validation, percentage_test):
+def get_data(nb_labeled_data, nb_unlabeled_data, percentage_validation, percentage_test, seed_1 = 42, seed_2 = 47):
     """
     nb_labeled_data : number of labeled data
     nb_unlabeled_data : number of unlabeled data
@@ -124,36 +134,37 @@ def get_data(nb_labeled_data, nb_unlabeled_data, percentage_validation, percenta
     correct_images_filenames = readable_images(images_filenames, images_directory)
     correct_images_filenames = are_images_all_RGB(correct_images_filenames, images_directory)
 
-    random.shuffle(correct_images_filenames)
+    random.Random(seed_1).shuffle(correct_images_filenames)
 
     
     nb_data = len(correct_images_filenames)
     
-    transform_data = transforms.Compose(
+
+    transform_data_1 = transforms.Compose(
         [transforms.ToTensor(),
-        transforms.CenterCrop((256, 256))])
-        #transforms.Resize((256,256))])
-        #transforms.Normalize((0, 0, 0), (1/255, 1/255, 1/255))])
+        transforms.Normalize((0, 0, 0), (1/255, 1/255, 1/255))])
     
     
-    transform_mask = transforms.Compose(
+    transform_mask_1 = transforms.Compose(
         [transforms.ToTensor(),
-        transforms.CenterCrop((256, 256)),
-        #transforms.Resize((256,256))])
         transforms.Normalize(0, 1/255)])
+    
+    transform_2 = transforms.Compose(
+        [transforms.Resize((256,256))]
+    )
 
     ##train data
     index_end_train = int((1 - (percentage_validation + percentage_test)) * nb_data)
     train_images_filenames = correct_images_filenames[0:index_end_train]
 
-    random.shuffle(train_images_filenames)
+    random.Random(seed_2).shuffle(train_images_filenames)
 
     nb_data_train = len(train_images_filenames)
     labeled_train_images_filenames = train_images_filenames[0:int(nb_labeled_data * nb_data_train)]
     unlabeled_train_images_filenames = train_images_filenames[int(nb_labeled_data * nb_data_train):]
     
     #train labeled data
-    labeled_data_train = OxfordPetDataset_with_labels(labeled_train_images_filenames, images_directory, masks_directory,transform_data,transform_mask)
+    labeled_data_train = OxfordPetDataset_with_labels(labeled_train_images_filenames, images_directory, masks_directory,transform_data_1,transform_mask_1, transform_2)
     labeled_train_loader = DataLoader(
         labeled_data_train,
         batch_size=20,
@@ -162,7 +173,7 @@ def get_data(nb_labeled_data, nb_unlabeled_data, percentage_validation, percenta
    
 
     #train unlabeled data
-    unlabeled_data_train = OxfordPetDataset_with_labels(unlabeled_train_images_filenames, images_directory, masks_directory, transform_data, transform_mask)
+    unlabeled_data_train = OxfordPetDataset_with_labels(unlabeled_train_images_filenames, images_directory, masks_directory, transform_data_1, transform_mask_1, transform_2)
     unlabeled_train_loader = DataLoader(
         unlabeled_data_train,
         batch_size=80,
@@ -174,7 +185,7 @@ def get_data(nb_labeled_data, nb_unlabeled_data, percentage_validation, percenta
     index_end_val = index_end_train + int(percentage_validation * nb_data)
     validation_images_filenames = correct_images_filenames[index_start_val:index_end_val]
 
-    validation_data = OxfordPetDataset_with_labels(validation_images_filenames, images_directory, masks_directory,transform_data,transform_mask)
+    validation_data = OxfordPetDataset_with_labels(validation_images_filenames, images_directory, masks_directory,transform_data_1,transform_mask_1,transform_2)
     val_loader = DataLoader(
         validation_data,
         batch_size=1,
@@ -185,7 +196,7 @@ def get_data(nb_labeled_data, nb_unlabeled_data, percentage_validation, percenta
     index_start_test = index_end_val
     test_images_filenames = correct_images_filenames[index_start_test :]
 
-    test_data = OxfordPetDataset_with_labels(test_images_filenames, images_directory, masks_directory,transform_data,transform_mask)
+    test_data = OxfordPetDataset_with_labels(test_images_filenames, images_directory, masks_directory,transform_data_1,transform_mask_1, transform_2)
     test_loader = DataLoader(
         test_data,
         batch_size=1,
@@ -194,17 +205,22 @@ def get_data(nb_labeled_data, nb_unlabeled_data, percentage_validation, percenta
 
     return labeled_train_loader, unlabeled_train_loader, val_loader, test_loader
 
-if __name__ == '__main__':
-    labeled_train_loader, unlabeled_train_loader, val_loader, test_loader = get_data(0.2, 0.8, 0.2, 0.2)
 
-
-"""
-zipped_dataloader = zip(labeled_train_loader, unlabeled_train_loader)
-
-for batch_1, batch_2 in zipped_dataloader:
-    image_1, labels_1 = batch_1
-    image_2, labels_2 = batch_2
-    combined_image = torch.cat([image_1, image_2], dim=0)
-    print(combined_image.shape)
+#Keep commented 
+# Example of how to mix both labeled_train and unlabeled_train_loader 
 
 """
+labeled_train_loader, unlabeled_train_loader, val_loader, test_loader = get_data(0.2, 0.8, 0.2, 0.2)
+
+
+    zipped_dataloader = zip(labeled_train_loader, unlabeled_train_loader)
+
+    for batch_1, batch_2 in zipped_dataloader:
+        image_1, labels_1 = batch_1
+        image_2, labels_2 = batch_2
+        combined_image = torch.cat([image_1, image_2], dim=0)
+        print(combined_image.shape)
+
+"""  
+
+    
