@@ -4,7 +4,7 @@ import torch.nn as nn
 from torch.optim import Adam
 from unet import UNet
 from preprocessing_1_dataloader import get_data
-from data_augmentation import augmentation, colorjiter, invert
+from data_augmentation import augmentation, Gaussian_Blur
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") #Enable GPU support
 ####Initialisation####
 #create 2 network
@@ -42,10 +42,12 @@ def update_ema_variables(model, ema_model, alpha, global_step):
 ##data loader
 mixed_train_loader, val_loader, test_loader = get_data(0.2,0.8,0.2,0.1)
 #Train
+losses = []
 for epoch in range(epochs):
     cum_loss = 0
     for idx, (X,y) in enumerate(mixed_train_loader):
         optimizer.zero_grad()
+        Gaussian_Blur(X)
         X_student_augmentation = augmentation(X)
         X_teacher_augmentation = augmentation(X)
         pred_stud = Student(X_student_augmentation)
@@ -62,6 +64,7 @@ for epoch in range(epochs):
         optimizer.step()
         cum_loss += loss
         gs += 1
+        losses.append(loss.item())
         update_ema_variables(Student, Teacher, alpha, gs)
     print(f'Epoch {epoch} loss {cum_loss.item() / len(mixed_train_loader)}')
         #get the images with mask
