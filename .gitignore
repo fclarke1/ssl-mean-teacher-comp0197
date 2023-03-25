@@ -1,2 +1,4 @@
 oxford-iiit-pet/
 unet/__pycache__/
+data/
+archive/
