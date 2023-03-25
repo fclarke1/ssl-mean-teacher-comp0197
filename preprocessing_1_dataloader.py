@@ -142,15 +142,17 @@ def are_images_all_RGB(images_filenames, images_directory):
             correct_images_filenames.append(i)
     return correct_images_filenames
 
-def get_data(nb_labeled_data, nb_unlabeled_data, percentage_validation, percentage_test):
+def get_data(nb_labeled_data, nb_unlabeled_data, percentage_validation, percentage_test, batch_size=16, img_resize=128, is_mixed_loader=True):
     """
     nb_labeled_data : number of labeled data
     nb_unlabeled_data : number of unlabeled data
     percentage_validation : percentage from the whole dataset of the validation set
     percentage_test : percentage from the whole dataset of the test set
+    batch_size : (int) size of all data loader batches
+    img_resize : (int) all images are resized to this size
+    is_mixed_loader : (bool) if True the train loader only consits of labelled data (only for development)
     Output:
-    dataloader for labeled training data
-    dataloader for unlabeled training data
+    dataloader for labeled and unlabelled training data in one loader
     dataloader for validation set
     dataloader for test set
     """
@@ -183,7 +185,7 @@ def get_data(nb_labeled_data, nb_unlabeled_data, percentage_validation, percenta
         transforms.Normalize(0, 1/255)])
     
     transform_2 = transforms.Compose(
-        [transforms.Resize((256,256))]
+        [transforms.Resize((img_resize,img_resize))]
     )
 
     ##train data
@@ -194,14 +196,22 @@ def get_data(nb_labeled_data, nb_unlabeled_data, percentage_validation, percenta
 
     
     
-
-    #train mixed labeled and unlabeled data
-    mixed_data_train = OxfordPetDataset_with_labels_mixed(train_images_filenames, images_directory, masks_directory, nb_unlabeled_data, transform_data_1, transform_mask_1, transform_2)
-    mixed_train_loader = DataLoader(
-        mixed_data_train,
-        batch_size=100,
-        shuffle=True,
-    )
+    #train mixed labeled and unlabeled data:
+    if is_mixed_loader:
+        mixed_data_train = OxfordPetDataset_with_labels_mixed(train_images_filenames, images_directory, masks_directory, nb_unlabeled_data, transform_data_1, transform_mask_1, transform_2)
+        mixed_train_loader = DataLoader(
+            mixed_data_train,
+            batch_size=batch_size,
+            shuffle=True,
+        )
+    # if we only want labelled data in train_loader:
+    else:
+        mixed_data_train = OxfordPetDataset_with_labels(train_images_filenames, images_directory, masks_directory,transform_data_1, transform_mask_1, transform_2)
+        mixed_train_loader = DataLoader(
+            mixed_data_train,
+            batch_size=batch_size,
+            shuffle=True,
+        )
 
     
     ##validation data
@@ -212,7 +222,7 @@ def get_data(nb_labeled_data, nb_unlabeled_data, percentage_validation, percenta
     validation_data = OxfordPetDataset_with_labels(validation_images_filenames, images_directory, masks_directory,transform_data_1, transform_mask_1, transform_2)
     val_loader = DataLoader(
         validation_data,
-        batch_size=20,
+        batch_size=batch_size,
         shuffle=True,
     )
 
@@ -223,7 +233,7 @@ def get_data(nb_labeled_data, nb_unlabeled_data, percentage_validation, percenta
     test_data = OxfordPetDataset_with_labels(test_images_filenames, images_directory, masks_directory,transform_data_1,transform_mask_1, transform_2)
     test_loader = DataLoader(
         test_data,
-        batch_size=20,
+        batch_size=batch_size,
         shuffle=True,
     )
 
