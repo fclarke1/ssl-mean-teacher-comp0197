@@ -43,4 +43,4 @@ def invert(batch):
 def augmentation(batch):
     funct = [gaussian_noise, saturation, Gaussian_Blur, colorjiter, invert]
     augmented_batch = choice(funct)(batch)
-    return augmented_batch
+    return augmented_batch.type(torch.float32)
