@@ -134,7 +134,7 @@ class UNet(nn.Module):
 
     def __init__(self, num_classes, in_channels=3, depth=5, 
                  start_filts=64, up_mode='transpose', 
-                 merge_mode='concat'):
+                 merge_mode='concat', dropout_rate=0.25):
         """
         Arguments:
             in_channels: int, number of channels in the input tensor.
@@ -178,6 +178,8 @@ class UNet(nn.Module):
 
         self.down_convs = []
         self.up_convs = []
+        
+        self.dropout = nn.Dropout(p=dropout_rate)
 
         # create the encoder pathway and add to a list
         for i in range(depth):
@@ -223,10 +225,12 @@ class UNet(nn.Module):
         # encoder pathway, save outputs for merging
         for i, module in enumerate(self.down_convs):
             x, before_pool = module(x)
+            before_pool = self.dropout(before_pool)
             encoder_outs.append(before_pool)
 
         for i, module in enumerate(self.up_convs):
             before_pool = encoder_outs[-(i+2)]
+            before_pool = self.dropout(before_pool)
             x = module(before_pool, x)
         
         # No softmax is used. This means you need to use
@@ -234,13 +238,3 @@ class UNet(nn.Module):
         # as this module includes a softmax already.
         x = self.conv_final(x)
         return x
-
-if __name__ == "__main__":
-    """
-    testing
-    """
-    model = UNet(3, depth=5, merge_mode='concat')
-    x = Variable(torch.FloatTensor(np.random.random((1, 3, 320, 320))))
-    out = model(x)
-    loss = torch.sum(out)
-    loss.backward()
