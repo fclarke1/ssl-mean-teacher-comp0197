@@ -8,6 +8,10 @@ import random
 from torch.utils.data import Dataset, DataLoader
 import torchvision.datasets.utils as utils
 
+# mean and std of whole image dataset
+DATA_MEAN = torch.asarray([0.4803, 0.4497, 0.3960])
+DATA_STD = torch.asarray([0.2665, 0.2623, 0.2707])
+
 
 def download_data():
     url_images = "https://www.robots.ox.ac.uk/~vgg/data/pets/data/images.tar.gz"
@@ -25,8 +29,8 @@ def download_data():
 #Each pixel in a mask image can take one of three values: 1, 2, or 3. 1 means that this pixel of an image belongs to the class pet, 2 - to the class background, 3 - to the class border. 
 def preprocess_mask(mask):
     
-    mask[np.round(mask) == 2.0] = 0.0
-    mask[(np.round(mask) == 1.0) | (np.round(mask) == 3.0)] = 1.0
+    mask[mask == (2.0 / 255)] = 0.0
+    mask[(mask == 1.0 / 255) | (mask == 3.0 / 255)] = 1.0
     return mask
 
 class OxfordPetDataset_with_labels(Dataset):
@@ -142,6 +146,30 @@ def are_images_all_RGB(images_filenames, images_directory):
             correct_images_filenames.append(i)
     return correct_images_filenames
 
+
+def un_normalise(X):
+    """
+    Given a batch or single image un-normalise it to get it to it's original values
+    """
+    if len(X.shape) == 4:
+        shape_string = 'bchw'
+    # given a single image
+    else:
+        shape_string = 'chw'
+    
+    original_mean = DATA_MEAN
+    original_std = DATA_STD
+    ones_like = torch.ones_like(X)
+    # get mean into a shape we can easily add it to the images
+    original_mean_broadcastable = torch.einsum(shape_string+',c->'+shape_string, ones_like, original_mean)
+
+    # in each channel multiple by original std then add the original mean
+    Y = torch.einsum(shape_string+',c->'+shape_string, X, original_std)
+    Y += original_mean_broadcastable
+    
+    return Y
+
+
 def get_data(nb_labeled_data, nb_unlabeled_data, percentage_validation, percentage_test, batch_size=16, img_resize=128, is_mixed_loader=True):
     """
     nb_labeled_data : number of labeled data
@@ -177,12 +205,12 @@ def get_data(nb_labeled_data, nb_unlabeled_data, percentage_validation, percenta
     
     transform_data_1 = transforms.Compose(
         [transforms.ToTensor(),
-        transforms.Normalize((0, 0, 0), (1/255, 1/255, 1/255))])
+        transforms.Normalize(DATA_MEAN, DATA_STD)
+        ])
     
     
     transform_mask_1 = transforms.Compose(
-        [transforms.ToTensor(),
-        transforms.Normalize(0, 1/255)])
+        [transforms.ToTensor()])
     
     transform_2 = transforms.Compose(
         [transforms.Resize((img_resize,img_resize))]
