@@ -44,3 +44,6 @@ def augmentation(batch):
     funct = [gaussian_noise, saturation, Gaussian_Blur, colorjiter, invert]
     augmented_batch = choice(funct)(batch)
     return augmented_batch.type(torch.float32)
+if __name__ == "__main__":
+    from preprocessing_2_dataloaders import get_data
+    labeled_train_loader, unlabeled_train_loader, val_loader, test_loader = get_data(0.2, 0.8, 0.2, 0.2)
