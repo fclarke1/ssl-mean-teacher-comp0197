@@ -22,10 +22,10 @@ def saturation(batch):
     #     save_image(saturated_batch[i], "saturated_batch{}.png".format(i))
     return saturated_batch
 def Gaussian_Blur(batch):
-    blurred = GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 5))
+    blurred = GaussianBlur(kernel_size=(1, 3), sigma=(0.1, 5))
     blurred_batch = blurred(batch)
     # for i in range(10):
-    #     save_image(blurred_batch[i], "blurred_batch{}.png".format(i))
+    #     save_image(blurred_batch[i], "blurred_batch{}.png".format(10+i))
     return blurred_batch
 def colorjiter(batch):
     b = np.random.uniform(0, 1); c = np.random.uniform(0, 1); s = np.random.uniform(0, 1); h = np.random.uniform(0, 1)
