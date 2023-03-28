@@ -6,10 +6,10 @@ from torch.optim import Adam, lr_scheduler
 import model_UNet
 from Losses import Dice_loss, Unsup_Loss
 from Utils import utils
-from preprocessing_1_dataloader import get_data
-from data_augmentation import augmentation, Gaussian_Blur
+from data_into_loaders import get_data
+from data_augmentation import augmentation
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") #Enable GPU support
-def train(sup_per_cent, img_size, model_depth, batch_size, nb_epoch, ramp_up, consistancy, alpha, lr, lr_decay, wait_period, drop_out):
+def train(sup_per_cent, img_size, model_depth, batch_size, nb_epoch, ramp_up, consistency, alpha, lr, lr_decay, wait_period, drop_out):
 #### Hyper-Param ####
 # data parms
     supervised_percent = sup_per_cent  # what percent of training is to be labelled
@@ -23,7 +23,7 @@ def train(sup_per_cent, img_size, model_depth, batch_size, nb_epoch, ramp_up, co
     batch_size = batch_size
     epochs = nb_epoch
     ramp_up = ramp_up
-    consistency = consistancy
+    consistency = consistency
     alpha = alpha
     global_step = 0
     lr = lr
@@ -31,9 +31,9 @@ def train(sup_per_cent, img_size, model_depth, batch_size, nb_epoch, ramp_up, co
     wait_period = wait_period
 
     #create 2 network
-    modelS = model_UNet.UNet(in_channels=3, num_classes=2, depth=depth)
+    modelS = model_UNet.UNet(in_channels=3, num_classes=2, depth=depth, dropout_rate=drop_out)
     modelS = modelS.to(device)
-    modelT = model_UNet.UNet(in_channels=3, num_classes=2, depth=depth)
+    modelT = model_UNet.UNet(in_channels=3, num_classes=2, depth=depth, dropout_rate=drop_out)
     modelT = modelT.to(device)
     #create the losses
     sup_crit = nn.CrossEntropyLoss().to(device)
@@ -52,7 +52,7 @@ def train(sup_per_cent, img_size, model_depth, batch_size, nb_epoch, ramp_up, co
         running_loss = 0
         running_loss_sup = 0
         running_loss_unsup = 0
-        w_t = utils.wt(rampup_length = ramp_up, current = epoch, alpha = alpha, wait_period = wait_period)
+        w_t = utils.wt(rampup_length = ramp_up, current = epoch, alpha = consistency, wait_period = wait_period)
         for step, data in enumerate(mixed_train_loader):
             imgs, labs = data
             #Augmentation
@@ -101,5 +101,5 @@ def train(sup_per_cent, img_size, model_depth, batch_size, nb_epoch, ramp_up, co
     df.to_csv(filename + '.csv')
     torch.save(modelS.state_dict(), filename + '.pt')
 if __name__ == "__main__":
-    train(0.1, 128, 4, 8, 100, 10, 10, 0.999, 0.001, 0.9, 10, 0.5)                   
+    train(0.1, 128, 4, 8, 10, 10, 10, 0.999, 0.001, 0.9, 10, 0.5)                   
 
