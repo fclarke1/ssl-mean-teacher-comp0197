@@ -92,9 +92,9 @@ class OxfordPetDataset_with_labels_mixed(Dataset):
     def __getitem__(self, idx):
         image_filename = self.images_filenames[idx]
         is_labelled_one = self.is_labelled_indeces[idx]
-        print('Image number ' , idx)
-        print('Image name ', image_filename)
-        print('Is it labelled? ', is_labelled_one)
+#         print('Image number ' , idx)
+#         print('Image name ', image_filename)
+#         print('Is it labelled? ', is_labelled_one)
 
         image = Image.open(os.path.join(self.images_directory, image_filename))
         mask = Image.open(
