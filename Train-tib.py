@@ -9,13 +9,11 @@ from Utils import utils
 from data_into_loaders import get_data
 from data_augmentation import augmentation
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") #Enable GPU support
-def train(sup_per_cent, img_size, model_depth, batch_size, nb_epoch, ramp_up, consistency, alpha, lr, lr_decay, wait_period, drop_out):
+def train(sup_per_cent, img_size, model_depth, batch_size, nb_epoch, ramp_up, consistency, alpha, lr, lr_decay, wait_period, drop_out, train_loader, validation_loader):
 #### Hyper-Param ####
 # data parms
     supervised_percent = sup_per_cent  # what percent of training is to be labelled
     img_resize = img_size             # resize all images to this size 
-    is_only_labelled = False     # Training only on supervised data or not
-    is_mixed_labelled = True
     # model params
     depth = model_depth       # depth of unet
 
@@ -42,7 +40,7 @@ def train(sup_per_cent, img_size, model_depth, batch_size, nb_epoch, ramp_up, co
     optimizer = Adam(modelS.parameters())
     scheduler = lr_scheduler.ExponentialLR(optimizer, gamma=lr_gamma, last_epoch=-1, verbose=True)
     ##data loader
-    mixed_train_loader, val_loader, test_loader = get_data(supervised_percent,1-supervised_percent,0.2,0.1, batch_size = batch_size, img_resize = img_resize, is_mixed_loader = is_mixed_labelled)
+    # mixed_train_loader, val_loader, test_loader = get_data(supervised_percent,1-supervised_percent,0.2,0.1, batch_size = batch_size, img_resize = img_resize, is_mixed_loader = is_mixed_labelled)
 
     #Train
     eval_freq = 1
@@ -53,7 +51,7 @@ def train(sup_per_cent, img_size, model_depth, batch_size, nb_epoch, ramp_up, co
         running_loss_sup = 0
         running_loss_unsup = 0
         w_t = utils.wt(rampup_length = ramp_up, current = epoch, alpha = consistency, wait_period = wait_period)
-        for step, data in enumerate(mixed_train_loader):
+        for step, data in enumerate(train_loader):
             imgs, labs = data
             #Augmentation
             imgS_aug= augmentation(imgs)
@@ -91,15 +89,18 @@ def train(sup_per_cent, img_size, model_depth, batch_size, nb_epoch, ramp_up, co
         print(f'Epoch {epoch + 1:4d} - Loss: {running_loss:6.2f}, loss_up: {running_loss_sup:6.2f}, loss_unsup: {running_loss_unsup:6.2f}')
         losses.append([epoch, running_loss, running_loss_sup, running_loss_unsup])
         if epoch % eval_freq == 0:
-            accuracy, IOU = utils.eval_model(modelS, val_loader, device)
+            accuracy, IOU = utils.eval_model(modelS, validation_loader, device)
             accs.append(accuracy)
             IOUs.append(IOU)
             print(f'accuracy: {accuracy:2.0%}, IOU: {IOU:2.0%}')
     table = {'Epoch' : losses[:,0], 'running loss': losses[:,1], 'running loss sup': losses[:,2], 'running loss unsup': losses[:,3], 'accuracy':accs,'IOU':IOU}
     df = pd.DataFrame(table)
-    filename = f'supervized_{sup_per_cent:.2%}_img_size_{img_size}_model_depth_{model_depth}_batch_size_{batch_size}_nb_epoch_{nb_epoch}_ramp_up_{ramp_up}_consistancy_{consistancy}_alpha_{alpha}_lr_{lr}_lr_decay_{lr_decay}_wait_period_{wait_period}_drop_out_{drop_out}.csv'
+    filename = f'supervized_{sup_per_cent:.2%}_img_size_{img_size}_model_depth_{model_depth}_batch_size_{batch_size}_nb_epoch_{nb_epoch}_ramp_up_{ramp_up}_alpha_{alpha}_lr_{lr}_lr_decay_{lr_decay}_wait_period_{wait_period}_drop_out_{drop_out}.csv'
     df.to_csv(filename + '.csv')
     torch.save(modelS.state_dict(), filename + '.pt')
 if __name__ == "__main__":
-    train(0.1, 128, 4, 8, 10, 10, 10, 0.999, 0.001, 0.9, 10, 0.5)                   
+    sup_per_cent = 0.5;img_size = 64; model_depth = 3; batch_size = 128; nb_epoch = 100; ramp_up = 20
+    consistency = 56; alpha = 56;lr = 1e-3; lr_decay = 0.9; wait_period = 10; drop_out = 0.25
+    mixed_train_loader, val_loader, test_loader = get_data(sup_per_cent,1-sup_per_cent,0.2,0.1, batch_size = batch_size, img_resize = img_size, is_mixed_loader = True)
+    train(sup_per_cent, img_size, model_depth, batch_size, nb_epoch, ramp_up, consistency, alpha, lr, lr_decay, wait_period, drop_out, train_loader = mixed_train_loader, validation_loader = val_loader)                   
 
