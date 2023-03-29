@@ -189,7 +189,9 @@ def get_data(nb_labeled_data, nb_unlabeled_data, percentage_validation, percenta
     dataloader for validation set
     dataloader for test set
     """
-
+    
+    random.seed(200) # Fix randomness
+    
     assert nb_labeled_data + nb_unlabeled_data == 1
 
     download_data() # Comment out if you have already this downloaded
