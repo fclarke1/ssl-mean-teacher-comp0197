@@ -8,9 +8,11 @@ import torchvision
 from torchvision.transforms import ColorJitter, GaussianBlur, RandomInvert
 from random import choice
 def gaussian_noise(batch):
+    min_batch = batch.min()
+    max_batch = batch.max()
     noise = np.random.normal(0, np.random.uniform(0.02,0.1), batch.shape)
     noisy_batch = batch + noise
-    noisy_batch = np.clip(noisy_batch, 0, 1)
+    noisy_batch = np.clip(noisy_batch, min_batch, max_batch)
     # for i in range(10):
     #     save_image(batch[i], "batch_{}.png".format(i))
     # #     save_image(torch.from_numpy(noise[i]), "noisy_{}.png".format(i))
