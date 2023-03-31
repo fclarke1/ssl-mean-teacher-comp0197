@@ -67,7 +67,7 @@ def print_image_and_mask(image,label, model=0, depth = 3):
     network = model_UNet.UNet(in_channels = 3, num_classes = 2, depth = depth)
     network.load_state_dict(torch.load(model, map_location = device))
     with torch.no_grad():
-        pred = network(image.unsqueeze(0))
+        pred = torch.argmax(network(image.unsqueeze(0)),1).float()
     image_0_1 = RGB_0_1(image)
     image_list = [image_0_1, augmentation(image_0_1)]
     pred_list = [label.unsqueeze(1), pred]
