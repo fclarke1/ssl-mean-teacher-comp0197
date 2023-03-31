@@ -68,7 +68,8 @@ def print_image_and_mask(image,label, model=0, depth = 3):
     network.load_state_dict(torch.load(model, map_location = device))
     with torch.no_grad():
         pred = network(image.unsqueeze(0))
-    image_list = [image, augmentation(image)]
+    image_0_1 = RGB_0_1(image)
+    image_list = [image_0_1, augmentation(image_0_1)]
     pred_list = [label.unsqueeze(1), pred]
     print_(image_list, ['Original', 'Augmented'], 'pictures.png')
     print_(pred_list, ['Label', 'Prediction'], 'mask.png')
@@ -93,6 +94,24 @@ def show(imgs):
         img = F.to_pil_image(img)
         axs[0, i].imshow(np.asarray(img))
         axs[0, i].set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
+def RGB_0_1(images):
+    '''Convert images from [0,1] to [0,255]'''
+    images = images.clone()
+    value_range = images.min(), images.max()
+    def norm_ip(img, low, high):
+        img.clamp_(min=low, max=high)
+        img.sub_(low).div_(max(high - low, 1e-5))
+    def norm_range(t, value_range):
+            if value_range is not None:
+                norm_ip(t, value_range[0], value_range[1])
+            else:
+                norm_ip(t, float(t.min()), float(t.max()))
+    if len(images.shape) == 4:
+        for t in images:  # loop over mini-batch dimension
+            norm_range(t, value_range)
+    else:
+        norm_range(images, value_range)
+    return images
 if __name__ == '__main__':
     supervised_pct = 0.25
     val_pct, test_pct = 0.2, 0.1
@@ -101,6 +120,8 @@ if __name__ == '__main__':
     mixed_train_loader, val_loader, test_loader = get_data(supervised_pct,1 - supervised_pct, val_pct, test_pct, batch_size=batch_size, img_resize=img_resize)
     itertest = iter(test_loader)
     images, labels = next(itertest)
+    # images = torch.rand(32,3,64,64)
+    # labels = torch.rand(32,1,64,64)
     image = images[0]
     label = labels[0]
     # image = torch.rand(3,64,64)
