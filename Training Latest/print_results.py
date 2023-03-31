@@ -24,7 +24,7 @@ def print_losses(name):
 def print_metrics(name):
     '''Print the metrics of the model and save the plot as a png file'''
     filelist = os.listdir()
-    txtfiles = [file for file in filelist if (file.endswith('IOU') or file.endswith('acc'))]
+    txtfiles = [file for file in filelist if (file.endswith('IOU') or file.endswith('acc') or file.endswith('accuracy'))]
     if len(txtfiles) == 0:
         return
     #read metrics in txt files
