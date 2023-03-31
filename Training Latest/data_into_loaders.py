@@ -14,7 +14,7 @@ random.seed(200) # Fix randomness
 DATA_MEAN = torch.asarray([0.4803, 0.4497, 0.3960])
 DATA_STD = torch.asarray([0.2665, 0.2623, 0.2707])
 
-
+# Download images and annotations
 def download_data():
     url_images = "https://www.robots.ox.ac.uk/~vgg/data/pets/data/images.tar.gz"
     url_annotations = "https://www.robots.ox.ac.uk/~vgg/data/pets/data/annotations.tar.gz"
@@ -28,15 +28,31 @@ def download_data():
     utils.extract_archive(os.path.join(data_path, "annotations.tar.gz"), data_path)
 
 
-#Each pixel in a mask image can take one of three values: 1, 2, or 3. 1 means that this pixel of an image belongs to the class pet, 2 - to the class background, 3 - to the class border. 
+# Each pixel in a mask image can take one of three values: 1, 2, or 3. 
+# 1: animal, 2: background, 3 border. 
+
+# Change class 3 to 1 (i.e. account border as animal)
 def preprocess_mask(mask):
     
     mask[mask == (2.0 / 255)] = 0.0
     mask[(mask == 1.0 / 255) | (mask == 3.0 / 255)] = 1.0
     return mask
 
+
 class OxfordPetDataset_with_labels(Dataset):
     def __init__(self, images_filenames, images_directory, masks_directory, transform_data_1=None, transform_mask_1=None, transform_2=None):
+        """
+        Constructor for the OxfordPetDataset_with_labels class.
+
+        Parameters:
+            images_filenames (list): List of image filenames
+            images_directory (str): Path to the directory containing the images
+            masks_directory (str): Path to the directory containing the masks
+            transform_data_1 (callable, optional): Transform to apply to the image data
+            transform_mask_1 (callable, optional): Transform to apply to the mask data
+            transform_2 (callable, optional): Additional transform to apply to both the image and mask data
+        """
+        
         self.images_filenames = images_filenames
         self.images_directory = images_directory
         self.masks_directory = masks_directory
@@ -46,35 +62,68 @@ class OxfordPetDataset_with_labels(Dataset):
         self.transform_2 = transform_2
 
     def __len__(self):
+        """
+        Returns the number of images in the dataset.
+        """
         return len(self.images_filenames)
 
     def __getitem__(self, idx):
+
+        """
+        Gets the image and mask data for the given index.
+
+        Parameters:
+            idx (int): The index of the data to retrieve.
+
+        Returns:
+            image (PIL.Image.Image): The image data.
+            mask (PIL.Image.Image): The mask data.
+        """
+
+        # Load the image and mask
         image_filename = self.images_filenames[idx]
         image = Image.open(os.path.join(self.images_directory, image_filename))
         mask = Image.open(
             os.path.join(self.masks_directory, image_filename.replace(".jpg", ".png")),
         )
         
+        # Apply first transforms to images and masks
         if self.transform_data_1 is not None:
             image = self.transform_data_1(image)
-        
         if self.transform_mask_1 is not None:
             mask = self.transform_mask_1(mask)
         
+        # Apply preprocess_mask function to make class 3 equal to 1 (i.e. border to animal)
         mask = preprocess_mask(mask)
 
+        # Apply the second transforms to images and masks
         if self.transform_2 is not None:
             mask = self.transform_2(mask)
             image = self.transform_2(image)
-
+        
+        # Threshold the mask values to be either 0 or 1
         mask[mask <= 0.5] = 0
         mask[mask>0.5] = 1 
         
         return image, mask
 
-
+# Class returning 
 class OxfordPetDataset_with_labels_mixed(Dataset):
     def __init__(self, images_filenames, is_labelled_indeces, images_directory, masks_directory, unlabeled_ratio=0.8, transform_data_1=None, transform_mask_1=None, transform_2=None):
+        """
+        Custom PyTorch dataset that loads and preprocesses images and masks from specified directories.
+        
+        Args:
+        - images_filenames (list): a list of image filenames
+        - is_labelled_indeces (list): a binary list that indicates whether each image is labelled or not
+        - images_directory (str): the directory where the images are stored
+        - masks_directory (str): the directory where the masks are stored
+        - unlabeled_ratio (float): the fraction of images that are unlabeled
+        - transform_data_1 (callable): a transform to apply to the image data
+        - transform_mask_1 (callable): a transform to apply to the mask data
+        - transform_2 (callable): a transform to apply to both the image and mask data
+        """
+        
         self.images_filenames = images_filenames
         self.is_labelled_indeces = is_labelled_indeces
         self.images_directory = images_directory
@@ -87,45 +136,62 @@ class OxfordPetDataset_with_labels_mixed(Dataset):
         self.unlabeled_ratio = unlabeled_ratio
 
     def __len__(self):
+        """
+        Returns the number of images in the dataset.
+        """
         return len(self.images_filenames)
 
     def __getitem__(self, idx):
+        """
+        Loads the image and mask corresponding to the given index, applies the specified transforms,
+        preprocesses the mask by thresholding it, and returns a tuple containing the preprocessed
+        image and mask.
+        
+        Args:
+        - idx (int): the index of the image/mask pair to load
+        
+        Returns:
+        - a tuple containing the preprocessed image and mask
+        """
+        
         image_filename = self.images_filenames[idx]
         is_labelled_one = self.is_labelled_indeces[idx]
-#         print('Image number ' , idx)
-#         print('Image name ', image_filename)
-#         print('Is it labelled? ', is_labelled_one)
-
+        
+        # Load the image and mask
         image = Image.open(os.path.join(self.images_directory, image_filename))
         mask = Image.open(
             os.path.join(self.masks_directory, image_filename.replace(".jpg", ".png")),
         )
         
+        # Apply first transforms to images and masks
         if self.transform_data_1 is not None:
             image = self.transform_data_1(image)
-
-        
         if self.transform_mask_1 is not None:
             mask = self.transform_mask_1(mask)
         
+        # Apply preprocess_mask function to make class 3 equal to 1 (i.e. border to animal)
         mask = preprocess_mask(mask)
 
+        # Apply the second transforms to images and masks
         if self.transform_2 is not None:
             image = self.transform_2(image)
             mask = self.transform_2(mask)
 
+        # Threshold the mask values to be either 0 or 1
         mask[mask <= 0.5] = 0
         mask[mask > 0.5] = 1 
         
-        # check the vector that contains the info on whether each image is labelled or not
+        # If the image is unlabeled, set the mask to a tensor of ones with the same shape as the image tensor
+        # multiplied by -1        
         if is_labelled_one == 0:
             mask = torch.ones((1, image.shape[1], image.shape[2])) * -1
+        
         return image, mask
 
 
 def readable_images(images_filenames, images_directory):
     """
-    Remove the data that are not readable
+    Remove the data that are not readable (i.e. cannot be opened)
     """
     correct_images_filenames = []
     
@@ -156,6 +222,7 @@ def un_normalise(X):
     """
     Given a batch or single image un-normalise it to get it to it's original values
     """
+
     if len(X.shape) == 4:
         shape_string = 'bchw'
     # given a single image
@@ -221,7 +288,6 @@ def get_data(nb_labeled_data, nb_unlabeled_data, percentage_validation, percenta
         [transforms.Resize((img_resize,img_resize))]
     )
 
-
     ##train data
     index_end_train = int((1 - (percentage_validation + percentage_test)) * nb_data)
     train_images_filenames = correct_images_filenames[:index_end_train]
@@ -257,6 +323,7 @@ def get_data(nb_labeled_data, nb_unlabeled_data, percentage_validation, percenta
             batch_size=batch_size,
             shuffle=False,
         )
+  
     # if we only want labelled data in train_loader:
     else:
         mixed_data_train = OxfordPetDataset_with_labels(train_images_filenames, images_directory, masks_directory,transform_data_1, transform_mask_1, transform_2)
@@ -273,7 +340,6 @@ def get_data(nb_labeled_data, nb_unlabeled_data, percentage_validation, percenta
         shuffle=False,
     )
 
-  
     test_data = OxfordPetDataset_with_labels(test_images_filenames, images_directory, masks_directory,transform_data_1,transform_mask_1, transform_2)
     test_loader = DataLoader(
         test_data,
@@ -283,5 +349,3 @@ def get_data(nb_labeled_data, nb_unlabeled_data, percentage_validation, percenta
 
     return mixed_train_loader, val_loader, test_loader
 
-# (Keep this commented) 
-# Example  : mixed_train_loader, val_loader, test_loader = get_data(0.2, 0.8, 0.2, 0.2) 
