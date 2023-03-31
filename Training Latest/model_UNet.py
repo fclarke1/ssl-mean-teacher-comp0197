@@ -1,8 +1,15 @@
+"""
+Using the model created by Alexander Krull:
+ - https://github.com/juglab/pn2v/tree/master/unet
+
+UNet class adapted by Alexander Krull was based on code from:
+ - https://arxiv.org/abs/1505.04597
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-from collections import OrderedDict
 from torch.nn import init
 import numpy as np
 
@@ -110,26 +117,12 @@ class UpConv(nn.Module):
 
 
 class UNet(nn.Module):
-    """ `UNet` class is based on https://arxiv.org/abs/1505.04597
-
+    """ 
     The U-Net is a convolutional encoder-decoder neural network.
     Contextual spatial information (from the decoding,
     expansive pathway) about an input tensor is merged with
     information representing the localization of details
     (from the encoding, compressive pathway).
-
-    Modifications to the original paper:
-    (1) padding is used in 3x3 convolutions to prevent loss
-        of border pixels
-    (2) merging outputs does not require cropping due to (1)
-    (3) residual connections can be used by specifying
-        UNet(merge_mode='add')
-    (4) if non-parametric upsampling is used in the decoder
-        pathway (specified by upmode='upsample'), then an
-        additional 1x1 2d convolution occurs after upsampling
-        to reduce channel dimensionality by a factor of 2.
-        This channel halving happens with the convolution in
-        the tranpose convolution (specified by upmode='transpose')
     """
 
     def __init__(self, num_classes, in_channels=3, depth=5, 
@@ -234,13 +227,3 @@ class UNet(nn.Module):
         # as this module includes a softmax already.
         x = self.conv_final(x)
         return x
-
-if __name__ == "__main__":
-    """
-    testing
-    """
-    model = UNet(3, depth=5, merge_mode='concat')
-    x = Variable(torch.FloatTensor(np.random.random((1, 3, 320, 320))))
-    out = model(x)
-    loss = torch.sum(out)
-    loss.backward()
