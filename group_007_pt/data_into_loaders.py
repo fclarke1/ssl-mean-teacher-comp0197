@@ -349,3 +349,48 @@ def get_data(nb_labeled_data, nb_unlabeled_data, percentage_validation, percenta
 
     return mixed_train_loader, val_loader, test_loader
 
+def get_supervised_data(percentage_labelled, percentage_validation, percentage_test, img_resize=64):
+    random.seed(200)
+    images_directory = os.path.join("./data/images")
+    masks_directory = os.path.join("./data/annotations/trimaps")
+    images_filenames = list(sorted(os.listdir(images_directory)))
+    
+    correct_images_filenames = readable_images(
+        images_filenames, images_directory)
+    correct_images_filenames = are_images_all_RGB(
+        correct_images_filenames, images_directory)
+
+    random.shuffle(correct_images_filenames)
+
+    nb_data = len(correct_images_filenames)
+    transform_data_1 = transforms.Compose(
+        [transforms.ToTensor(),
+         transforms.Normalize(DATA_MEAN, DATA_STD)
+         ])
+
+    transform_mask_1 = transforms.Compose(
+        [transforms.ToTensor()])
+
+    transform_2 = transforms.Compose(
+        [transforms.Resize((img_resize, img_resize))]
+    )
+
+    train_images_filenames = correct_images_filenames[0:int(
+        nb_data*percentage_labelled)]
+    validation_images_filenames = correct_images_filenames[int(
+        nb_data*(1-percentage_validation - percentage_test)):int(nb_data*(1 - percentage_test))]
+    test_images_filenames = correct_images_filenames[int(
+        nb_data*(1 - percentage_test)):]
+
+    train_data = OxfordPetDataset_with_labels(train_images_filenames,
+                                              images_directory, masks_directory, transform_data_1, transform_mask_1, transform_2)
+
+    validation_data = OxfordPetDataset_with_labels(
+        validation_images_filenames, images_directory, masks_directory, transform_data_1, transform_mask_1, transform_2)
+
+    # test data
+    test_data = OxfordPetDataset_with_labels(
+        test_images_filenames, images_directory, masks_directory, transform_data_1, transform_mask_1, transform_2)
+    print(f'Loaded {len(images_filenames)} images')
+
+    return train_data, validation_data, test_data

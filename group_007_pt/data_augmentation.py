@@ -5,7 +5,7 @@ import numpy as np
 from torchvision.utils import save_image
 import torch
 import torchvision
-from torchvision.transforms import ColorJitter, GaussianBlur, RandomInvert
+from torchvision.transforms import ColorJitter, GaussianBlur, RandomInvert, RandomRotation
 from random import choice
 def gaussian_noise(batch):
     '''Add gaussian noise to the batch
@@ -88,3 +88,14 @@ def augmentation(batch):
     funct = [gaussian_noise, saturation, Gaussian_Blur, colorjiter, invert]
     augmented_batch = choice(funct)(batch)
     return augmented_batch.type(torch.float32)
+
+def augmentation_all(batch, masks, var):
+    augmented_batch = batch + torch.empty(batch.shape).normal_(mean=0,std=var)
+    augmented_batch = torch.clip(augmented_batch, 0, 1)
+    inversion = RandomInvert(np.random.lognormal(1,var))
+    augmented_batch = inversion(augmented_batch)
+    augmented_batch = torchvision.transforms.functional.adjust_saturation(augmented_batch, np.random.lognormal(1, var))
+    rotater = RandomRotation(degrees=(-var*90,var*90))
+    augmented_batch = rotater(batch)
+    augmented_mask = rotater(masks)
+    return augmented_batch.type(torch.float32), augmented_mask.type(torch.float32)
