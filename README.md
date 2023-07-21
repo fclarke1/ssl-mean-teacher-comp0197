@@ -9,12 +9,17 @@ Date: April 2023
 
 Examining the performance of the semi-supervised learning algorithm, Mean Teacher, for image semantic segmentation task on the Oxford Pet III dataset, through two experiments. 
 
-- Experiment 1: A model was trained on 25% labeled and 75% unlabelled data using Mean Teacher, with an aim to study (i) how its performance improves with more (epochs) training and (ii) how its performance compares to supervised only training models.
+See [Tarvainen 2018](https://arxiv.org/abs/1703.01780) for more details. A simple visual of the setup is below:
 
-![Project Logo](./images/exp1_vfff.PNG)
+![Project Logo](./report/fig_meanteacher.png)
 
-- Experiment 2: Two additional models were trained on 5%/95% and 10%/90% labeled/unlabelled splits, using Mean Teacher, with the objective to understand how reducing the number of labeled data in Mean Teacher models, affects their performance. Comparative performance of all the models trained is shown below:
-![Project Logo](./images/my_pics.png)
+- Experiment 1: A model was trained on 25% labelled and 75% unlabelled data using Mean Teacher, with an aim to study (i) how its performance improves with more (epochs) training and (ii) how its performance compares to supervised only training models.
+
+![Project Logo](./report/fig_25_evaluation.png)
+
+- Experiment 2: Two additional models were trained on 5%/95% and 10%/90% labelled/unlabelled splits, using Mean Teacher, with the objective to understand how reducing the number of labelled data in Mean Teacher models, affects their performance. Comparative performance of all the models trained is shown below:
+
+![Project Logo](./report/fig_dataloader_model.png)
 
 
 ## Setup
@@ -38,7 +43,7 @@ Create a virtual environment with Python 3.10:
 conda create -n ssl-env -c pytorch python=3.10 pytorch=1.13 torchvision=0.14
 ```
 
-Activate the virtual environment. You will need to activate the venv environment in each terminal in which you want to use the project.
+Activate the virtual environment.
 
 ```bash
 conda activate ssl-env
