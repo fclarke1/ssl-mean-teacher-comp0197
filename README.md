@@ -78,6 +78,12 @@ to train M25L, M25 and M100L models
 python main_pt.py --train_labelled_pct 0.25 --train_100pct_model
 ```
 
+to evaluate trained models use the following. Note: if not evaluating the standard models (5%, 10%, 25% label split) then need to edit the functions/evaluate.py code manually
+```bash
+python main_pt.py --evaluate
+```
+
+
 ## Authors
 
 - [@fclarke1](https://github.com/fclarke1)
