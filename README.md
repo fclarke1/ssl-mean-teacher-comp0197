@@ -90,4 +90,4 @@ python main_pt.py --train_labelled_pct 0.25 --train_100pct_model
 
 
 ## Documentation
-[Fred Clarke's report](https://github.com/fclarke1/ssl-mean-teacher-comp0197/blob/main/report_cw2_22197823.pdf)
+[fclarke1's report](https://github.com/fclarke1/ssl-mean-teacher-comp0197/blob/main/report_cw2_22197823.pdf)
