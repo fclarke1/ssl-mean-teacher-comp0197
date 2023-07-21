@@ -28,7 +28,7 @@ def main(args):
 if __name__=='__main__':
     # parse command line inputs
     parser = argparse.ArgumentParser(description="script to use for training or evaluating models")
-    parser.add_argument("--train_labelled_pct", type=float, help="if training: percent of data to be labelled for model, eg. =0.25 will train model M25L and M100L")
+    parser.add_argument("--train_labelled_pct", type=float, help="if training: percent of data to be labelled for model, eg. =0.25 will train model M25L and M25")
     parser.add_argument("--train_100pct_model", action="store_true", help='train 100% supervised model M100')
     parser.add_argument("--evaluate", action='store_true', help="evaluate all models", required=True)
     args = parser.parse_args()
